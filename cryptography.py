@@ -4,7 +4,6 @@ import os
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
 
-# Diffie-Hellman Parameters
 PRIME = 0xFFFFFFFB
 GENERATOR = 5
 
@@ -22,7 +21,7 @@ def derive_key(shared_secret):
     return SHA256.new(secret_bytes).digest()
 
 def aes_encrypt(key, plaintext: bytes) -> bytes:
-    nonce = os.urandom(8)  # 64-bit nonce
+    nonce = os.urandom(8) 
     cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
     ciphertext = cipher.encrypt(plaintext)
     return nonce + ciphertext

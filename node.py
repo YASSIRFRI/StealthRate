@@ -12,19 +12,17 @@ from registry import get_client
 class Node:
     def __init__(self, node_id):
         self.node_id = node_id
-        self.circuit_keys = {}   # circuit_id (bytes) -> key (bytes)
+        self.circuit_keys = {}  
 
     def receive_create_circuit(self, circuit_id, their_public):
         """
         Handle a CREATE request: perform DH to establish a shared key.
         """
-        # Generate a new DH key pair for this circuit
         private_key = dh_generate_private_key()
         public_key = dh_generate_public_key(private_key)
         # Compute shared secret
         shared_secret = dh_compute_shared_secret(their_public, private_key)
         key = derive_key(shared_secret)
-        # Store the symmetric key for this circuit
         self.circuit_keys[circuit_id] = key
         print(f"[Node {self.node_id}] Established shared key for circuit {circuit_id.hex()}")
         return public_key
@@ -50,7 +48,6 @@ class Node:
         print(f"[Node {self.node_id}] Decrypted layer: {inner_data.hex()}")
 
         if not remaining_path:
-            # Exit node: extract destination client ID and deliver the message
             if len(inner_data) < 1:
                 print(f"[Node {self.node_id} - EXIT] Message too short.")
                 return
@@ -63,7 +60,6 @@ class Node:
             else:
                 print(f"[Node {self.node_id} - EXIT] Destination Client {destination_id} not found.")
         else:
-            # Forward to the next node
             next_node = remaining_path[0]
             new_remaining_path = remaining_path[1:]
             print(f"[Node {self.node_id}] Forwarding message to Node {next_node.node_id}")

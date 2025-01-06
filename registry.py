@@ -1,8 +1,5 @@
-# registry.py
-
 import random
 
-# Global registries
 NODES = {}
 CLIENTS = {}
 
