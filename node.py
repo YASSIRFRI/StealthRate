@@ -1,26 +1,23 @@
-# src/node.py
-from src.crypto import (
+# node.py
+
+from cryptography import (
+    dh_generate_private_key,
+    dh_generate_public_key,
     dh_compute_shared_secret,
     derive_key,
     aes_decrypt
 )
-from src.network import get_client
+from registry import get_client
 
 class Node:
-    """
-    Represents a node in the network.
-    Each node can negotiate per-circuit keys and relay messages.
-    """
-    
     def __init__(self, node_id):
         self.node_id = node_id
-        self.circuit_keys = {}
+        self.circuit_keys = {}   # circuit_id (bytes) -> key (bytes)
 
     def receive_create_circuit(self, circuit_id, their_public):
         """
         Handle a CREATE request: perform DH to establish a shared key.
         """
-        from src.crypto import dh_generate_private_key, dh_generate_public_key
         # Generate a new DH key pair for this circuit
         private_key = dh_generate_private_key()
         public_key = dh_generate_public_key(private_key)
@@ -32,44 +29,42 @@ class Node:
         print(f"[Node {self.node_id}] Established shared key for circuit {circuit_id.hex()}")
         return public_key
 
-    def receive_relay(self, circuit_id, data, next_node, destination_client_id=None):
+    def receive_relay(self, circuit_id, data, remaining_path):
         """
         Receive an onion-wrapped message:
         - Decrypt one layer using the circuit key.
-        - If next_node is None, we're the exit node and deliver the message.
-        - Otherwise, forward the peeled onion to next_node.
+        - If remaining_path is empty, we're the exit node and deliver the message.
+        - Otherwise, forward the peeled onion to the next node in the path.
         """
         if circuit_id not in self.circuit_keys:
             print(f"[Node {self.node_id}] Unknown circuit {circuit_id.hex()}.")
-            return None
+            return
 
         key = self.circuit_keys[circuit_id]
         try:
             inner_data = aes_decrypt(key, data)
         except Exception as e:
             print(f"[Node {self.node_id}] Decryption failed for circuit {circuit_id.hex()}: {e}")
-            return None
+            return
 
         print(f"[Node {self.node_id}] Decrypted layer: {inner_data.hex()}")
 
-        if next_node is None:
+        if not remaining_path:
             # Exit node: extract destination client ID and deliver the message
-            try:
-                if len(inner_data) < 1:
-                    raise ValueError("Message too short to contain destination client ID.")
-                # Assuming the first byte is the destination_client_id
-                destination_id = inner_data[0]
-                message = inner_data[1:].decode('utf-8')
-                print(f"[Node {self.node_id} - EXIT] Delivering message to Client {destination_id}: {message}")
-                destination_client = get_client(destination_id)
-                if destination_client:
-                    destination_client.receive_message(message)
-                else:
-                    print(f"[Node {self.node_id} - EXIT] Destination Client {destination_id} not found.")
-            except Exception as e:
-                print(f"[Node {self.node_id} - EXIT] Error delivering message: {e}")
-            return True
+            if len(inner_data) < 1:
+                print(f"[Node {self.node_id} - EXIT] Message too short.")
+                return
+            destination_id = inner_data[0]
+            message = inner_data[1:]
+            print(f"[Node {self.node_id} - EXIT] Delivering message to Client {destination_id}: {message.hex()}")
+            destination_client = get_client(destination_id)
+            if destination_client:
+                destination_client.receive_message(message)
+            else:
+                print(f"[Node {self.node_id} - EXIT] Destination Client {destination_id} not found.")
         else:
             # Forward to the next node
+            next_node = remaining_path[0]
+            new_remaining_path = remaining_path[1:]
             print(f"[Node {self.node_id}] Forwarding message to Node {next_node.node_id}")
-            return next_node.receive_relay(circuit_id, inner_data, None, destination_client_id=destination_client_id)
+            next_node.receive_relay(circuit_id, inner_data, new_remaining_path)
