@@ -8,6 +8,9 @@ from Crypto.Hash import SHA256
 from dataclasses import dataclass, asdict
 import threading
 import time
+import shlex
+from pyfiglet import Figlet
+from colorama import Fore, Style, init
 
 PRIME = 0xFFFFFFFB  # A large prime number equal to 4294967291
 GENERATOR = 5
@@ -66,9 +69,8 @@ def get_random_nodes(count):
 
 CLASS_STUDENTS = [
     "Omar", "Ayman", "Amine", "Ziko", "Ilyas",
-    "Rachid", "Hassan", "Omar", "Soufiane", "Adnan",
-    "Fatima", "Aicha", "Khadija", "Leila", "Zineb",
-    "Meryem", "Nadia", "Salma", "Imane", "Sara"
+     "Hassan", "Omar", "Soufiane", "Adnan", "Zineb",
+    "basma", "Maha", "Imane", "Oumaima"
 ]
 
 class Node:
@@ -344,7 +346,7 @@ class OnionRoutingCLI:
         self.assigned_node_names = set()
     
     def initialize_network(self):
-        num_nodes = 5
+        num_nodes = 6
         available_names = CLASS_STUDENTS.copy()
         if len(available_names) < num_nodes:
             raise ValueError("Not enough Moroccan names to assign to nodes.")
@@ -357,11 +359,25 @@ class OnionRoutingCLI:
             print(f"  - {node.name} (ID: {node.node_id})")
     
     def start(self):
-        print("\nWelcome to the Onion Routing CLI!")
-        print("Type 'help' to see available commands.\n")
+        # Create a Figlet object with your desired font
+        f = Figlet(font='slant')  # You can choose other fonts like 'banner', 'big', etc.
+        
+        # Define your banner text
+        banner_text = "CS Tor CLI"
+        
+        # Generate the ASCII art banner
+        ascii_banner = f.renderText(banner_text)
+        
+        # Optional: Add color to the banner using colorama
+        colored_banner = Fore.CYAN + ascii_banner
+        
+        print(colored_banner)
+        print(Fore.GREEN + "Welcome to the Onion Routing CLI!")
+        print(Fore.YELLOW + "Type 'help' to see available commands.\n")
+        
         while True:
             try:
-                user_input = input("onion-routing> ")
+                user_input = input(Fore.BLUE + "onion-routing> " + Style.RESET_ALL)
                 if not user_input.strip():
                     continue
                 args = shlex.split(user_input)
@@ -373,6 +389,13 @@ class OnionRoutingCLI:
                 sys.exit(0)
             except Exception as e:
                 print(f"Error: {e}")
+
+    def cmd_help(self, args):
+        print("Available commands:")
+        print("  help    - Show this help message")
+        print("  ...     - Other commands")
+
+
     
     def cmd_help(self, args):
         help_text = """
