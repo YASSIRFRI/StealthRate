@@ -1,7 +1,5 @@
-# src/network.py
 import random
 
-# A simple global registry of network participants (nodes and clients).
 NODES = {}
 CLIENTS = {}
 

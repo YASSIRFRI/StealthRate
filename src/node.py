@@ -21,13 +21,10 @@ class Node:
         Handle a CREATE request: perform DH to establish a shared key.
         """
         from src.crypto import dh_generate_private_key, dh_generate_public_key
-        # Generate a new DH key pair for this circuit
         private_key = dh_generate_private_key()
         public_key = dh_generate_public_key(private_key)
-        # Compute shared secret
         shared_secret = dh_compute_shared_secret(their_public, private_key)
         key = derive_key(shared_secret)
-        # Store the symmetric key for this circuit
         self.circuit_keys[circuit_id] = key
         print(f"[Node {self.node_id}] Established shared key for circuit {circuit_id.hex()}")
         return public_key
@@ -53,11 +50,9 @@ class Node:
         print(f"[Node {self.node_id}] Decrypted layer: {inner_data.hex()}")
 
         if next_node is None:
-            # Exit node: extract destination client ID and deliver the message
             try:
                 if len(inner_data) < 1:
                     raise ValueError("Message too short to contain destination client ID.")
-                # Assuming the first byte is the destination_client_id
                 destination_id = inner_data[0]
                 message = inner_data[1:].decode('utf-8')
                 print(f"[Node {self.node_id} - EXIT] Delivering message to Client {destination_id}: {message}")
@@ -70,6 +65,5 @@ class Node:
                 print(f"[Node {self.node_id} - EXIT] Error delivering message: {e}")
             return True
         else:
-            # Forward to the next node
             print(f"[Node {self.node_id}] Forwarding message to Node {next_node.node_id}")
             return next_node.receive_relay(circuit_id, inner_data, None, destination_client_id=destination_client_id)
